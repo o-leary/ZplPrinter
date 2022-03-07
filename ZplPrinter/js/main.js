@@ -28,7 +28,7 @@ $(document).ready(function () {
 
         for (var i in zpls) {
             var zpl = zpls[i];
-            if(!(!zpl || !zpl.length)) {
+            if (!(!zpl || !zpl.length)) {
                 zpl += "^XZ";
             }
 
@@ -47,7 +47,7 @@ $(document).ready(function () {
                     var blob = this.response;
                     if (configs['saveLabels']) {
                         if (configs['filetype'] == '1') {
-                            saveLabel(blob, 'png');
+                            saveLabel(blob, 'png', zpl);
                         }
                     }
                     var size = getSize(width, height)
@@ -68,6 +68,7 @@ $(document).ready(function () {
                 }
             };
             xhr.send(zpl);
+            saveZPL(zpl);
         }
     });
 });
@@ -92,7 +93,24 @@ function saveLabel(blob, ext) {
                     entry.createWriter(function (writer) {
                         writer.write(blob);
                         notify('Label <b>{0}</b> saved in folder <b>{1}</b>'.format(fileName, $('#txt-path').val()), 'floppy-saved', 'info', 1000);
+                    });
+                });
+            });
+        });
+    });
+}
 
+function saveZPL(zpl) {
+    chrome.storage.local.get('counter', function (items) {
+        chrome.fileSystem.getWritableEntry(pathEntry, function (entry) {
+            var counter = parseInt(items.counter);
+            var fileName = 'LBL' + pad(counter, 6) + '.txt';
+            var zplBlob = new Blob([zpl]);
+            chrome.storage.local.set({ 'counter': counter }, function () {
+                entry.getFile(fileName, { create: true }, function (entry) {
+                    entry.createWriter(function (writer) {
+                        writer.write(zplBlob);
+                        notify('Label <b>{0}</b> saved in folder <b>{1}</b>'.format(fileName, $('#txt-path').val()), 'floppy-saved', 'info', 1000);
                     });
                 });
             });
@@ -155,7 +173,7 @@ function startTcpServer() {
                 chrome.sockets.tcpServer.onAccept.addListener(function (clientInfo) {
                     chrome.sockets.tcp.getInfo(clientInfo.clientSocketId, function (socketInfo) {
                         clientSocketInfo = socketInfo;
-                        chrome.sockets.tcp.update(clientInfo.clientSocketId,{bufferSize: parseInt(configs.bufferSize) }, function(){
+                        chrome.sockets.tcp.update(clientInfo.clientSocketId, { bufferSize: parseInt(configs.bufferSize) }, function () {
                             chrome.sockets.tcp.setPaused(clientInfo.clientSocketId, false);
                         });
                     });
